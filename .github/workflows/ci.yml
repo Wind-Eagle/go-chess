@@ -2,6 +2,9 @@ name: CI
 
 on: [push, pull_request]
 
+env:
+  GOTOOLCHAIN: local
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,11 +30,11 @@ jobs:
       run: go build -tags codegen,largetest -v ./...
 
     - name: Test (small)
-      if: ${{ matrix.size == 'small' }}
+      if: matrix.size == 'small'
       run: go test -v ./...
 
     - name: Test (large)
-      if: ${{ matrix.size == 'large' }}
+      if: matrix.size == 'large'
       run: go test -tags codegen,largetest -v ./...
 
     - name: Check generated data
