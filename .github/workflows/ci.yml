@@ -1,0 +1,36 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+        - '1.22'
+        - '1.23'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go }}
+
+    - name: Build
+      run: go build -tags codegen,largetest -v ./...
+
+    - name: Test
+      run: go test -tags codegen,largetest -v ./...
+
+    - name: Check generated data
+      run: |
+        go generate ./...
+        git diff --exit-code || {
+          echo 'please re-run go generate ./... and commit the changes'
+          exit 1
+        }
