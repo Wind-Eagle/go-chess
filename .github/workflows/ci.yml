@@ -7,11 +7,13 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: false
       matrix:
         go:
         - '1.22'
         - '1.23'
+        size:
+        - small
+        - large
 
     steps:
     - uses: actions/checkout@v4
@@ -24,7 +26,12 @@ jobs:
     - name: Build
       run: go build -tags codegen,largetest -v ./...
 
-    - name: Test
+    - name: Test (small)
+      if: ${{ matrix.size == "small" }}
+      run: go test -v ./...
+
+    - name: Test (large)
+      if: ${{ matrix.size == "large" }}
       run: go test -tags codegen,largetest -v ./...
 
     - name: Check generated data
