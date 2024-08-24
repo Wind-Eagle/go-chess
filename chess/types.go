@@ -712,47 +712,89 @@ func (s Status) String() string {
 }
 
 type Outcome struct {
-	Verdict Verdict
-	Side    Color
+	verdict Verdict
+	side    Color
+}
+
+func RunningOutcome() Outcome {
+	return Outcome{verdict: VerdictRunning}
+}
+
+func DrawOutcome(verdict Verdict) (Outcome, bool) {
+	if verdict.Kind() == VerdictKindDraw {
+		return Outcome{verdict: verdict}, true
+	}
+	return Outcome{}, false
+}
+
+func MustDrawOutcome(verdict Verdict) Outcome {
+	res, ok := DrawOutcome(verdict)
+	if !ok {
+		panic("not a draw verdict")
+	}
+	return res
+}
+
+func WinOutcome(verdict Verdict, side Color) (Outcome, bool) {
+	if verdict.Kind() == VerdictKindWin {
+		return Outcome{verdict: verdict, side: side}, true
+	}
+	return Outcome{}, false
+}
+
+func MustWinOutcome(verdict Verdict, side Color) Outcome {
+	res, ok := WinOutcome(verdict, side)
+	if !ok {
+		panic("not a win verdict")
+	}
+	return res
+}
+
+func NewOutcome(verdict Verdict, side Color) Outcome {
+	if verdict.Kind() == VerdictKindWin {
+		return Outcome{verdict: verdict, side: side}
+	}
+	return Outcome{verdict: verdict}
+}
+
+func (o Outcome) Verdict() Verdict {
+	return o.verdict
+}
+
+func (o Outcome) Side() (Color, bool) {
+	if o.verdict.Kind() == VerdictKindWin {
+		return o.side, true
+	}
+	return Color(0), false
 }
 
 func (o Outcome) IsFinished() bool {
-	return o.Verdict.IsFinished()
+	return o.verdict.IsFinished()
 }
 
 func (o Outcome) Passes(filter VerdictFilter) bool {
-	return o.Verdict.Passes(filter)
-}
-
-func (o Outcome) Eq(r Outcome) bool {
-	if o.Verdict != r.Verdict {
-		return false
-	}
-	if o.Verdict.Kind() == VerdictKindWin && o.Side != r.Side {
-		return false
-	}
-	return true
+	return o.verdict.Passes(filter)
 }
 
 func (o Outcome) Status() Status {
-	switch o.Verdict.Kind() {
+	switch o.verdict.Kind() {
 	case VerdictKindRunning:
 		return StatusRunning
 	case VerdictKindDraw:
 		return StatusDraw
 	case VerdictKindWin:
-		return StatusWin(o.Side)
+		return StatusWin(o.side)
 	default:
 		panic("bad verdict kind")
 	}
 }
 
 func (o Outcome) String() string {
-	if o.Verdict.Kind() != VerdictKindWin {
-		return o.Verdict.String()
+	if o.verdict.Kind() != VerdictKindWin {
+		return o.verdict.String()
 	}
-	s := o.Side
-	switch o.Verdict {
+	s := o.side
+	switch o.verdict {
 	case VerdictWinUnknown:
 		return fmt.Sprintf("%s wins by unknown reason", s.LongString())
 	case VerdictCheckmate:

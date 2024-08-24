@@ -3,6 +3,8 @@ package chess
 import (
 	"testing"
 
+	"github.com/alex65536/go-chess/util/maybe"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,17 +82,16 @@ func TestSANPawnCaptureCandidates(t *testing.T) {
 	for _, v := range []struct {
 		f1    File
 		f2    File
-		isP   bool
-		p     Piece
+		p     maybe.Maybe[Piece]
 		moves []string
 	}{
 		{f1: FileC, f2: FileD, moves: []string{"c4d5", "c5d6"}},
 		{f1: FileE, f2: FileD, moves: []string{"e4d5", "e5d6"}},
-		{f1: FileE, f2: FileD, isP: true, p: PieceKnight, moves: []string{}},
+		{f1: FileE, f2: FileD, p: maybe.Some(PieceKnight), moves: []string{}},
 		{f1: FileG, f2: FileH, moves: []string{"g2h3", "g4h5"}},
-		{f1: FileG, f2: FileH, isP: true, p: PieceBishop, moves: []string{"g7h8b"}},
+		{f1: FileG, f2: FileH, p: maybe.Some(PieceBishop), moves: []string{"g7h8b"}},
 	} {
-		moves := b.sanPawnCaptureCandidates(v.f1, v.f2, v.isP, v.p, nil)
+		moves := b.sanPawnCaptureCandidates(v.f1, v.f2, v.p, nil)
 		assertMovesLegal(t, b, moves)
 		assert.ElementsMatch(t, v.moves, movesToStr(moves))
 	}

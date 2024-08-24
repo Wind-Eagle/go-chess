@@ -335,12 +335,12 @@ func LegalMoveFromUCIMove(u UCIMove, b *Board) (Move, error) {
 
 func (m Move) UCIMove() UCIMove {
 	if m.kind == MoveNull {
-		return UCIMove{Kind: UCIMoveNull}
+		return NullUCIMove()
 	}
 	if p, ok := m.kind.Promote(); ok {
-		return UCIMove{Kind: UCIMovePromote, Src: m.src, Dst: m.dst, Promote: p}
+		return PromoteUCIMove(m.src, m.dst, p)
 	}
-	return UCIMove{Kind: UCIMoveSimple, Src: m.src, Dst: m.dst}
+	return SimpleUCIMove(m.src, m.dst)
 }
 
 func (m Move) String() string {

@@ -649,27 +649,27 @@ func (b *Board) CalcOutcome() Outcome {
 	// non-force ones.
 	if !b.HasLegalMoves() {
 		if b.IsCheck() {
-			return Outcome{Verdict: VerdictCheckmate, Side: b.r.Side.Inv()}
+			return MustWinOutcome(VerdictCheckmate, b.r.Side.Inv())
 		} else {
-			return Outcome{Verdict: VerdictStalemate}
+			return MustDrawOutcome(VerdictStalemate)
 		}
 	}
 
 	// Check for insufficient material
 	if b.IsInsufficientMaterial() {
-		return Outcome{Verdict: VerdictInsufficientMaterial}
+		return MustDrawOutcome(VerdictInsufficientMaterial)
 	}
 
 	// Check for 50/75 move rule. Note that check for 50 move rule must
 	// come after all other ones, because it is non-strict.
 	if b.r.MoveCounter >= 150 {
-		return Outcome{Verdict: VerdictMoves75}
+		return MustDrawOutcome(VerdictMoves75)
 	}
 	if b.r.MoveCounter >= 100 {
-		return Outcome{Verdict: VerdictMoves50}
+		return MustDrawOutcome(VerdictMoves50)
 	}
 
-	return Outcome{Verdict: VerdictRunning}
+	return RunningOutcome()
 }
 
 func (b *Board) Eq(o *Board) bool {

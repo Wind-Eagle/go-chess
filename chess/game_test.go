@@ -44,33 +44,33 @@ func TestGameSimple(t *testing.T) {
 
 func TestGameRepeat(t *testing.T) {
 	g := NewGame()
-	assert.Equal(t, Outcome{Verdict: VerdictRunning}, g.Outcome())
+	assert.Equal(t, RunningOutcome(), g.Outcome())
 
 	_, err := g.PushUCIList("g1f3 b8c6 f3g1 c6b8 g1f3 b8c6 f3g1 c6b8")
 	require.NoError(t, err)
-	assert.Equal(t, Outcome{Verdict: VerdictRunning}, g.Outcome())
-	assert.Equal(t, Outcome{Verdict: VerdictRepeat3}, g.CalcOutcome())
+	assert.Equal(t, RunningOutcome(), g.Outcome())
+	assert.Equal(t, MustDrawOutcome(VerdictRepeat3), g.CalcOutcome())
 
 	g.SetAutoOutcome(VerdictFilterStrict)
-	assert.Equal(t, Outcome{Verdict: VerdictRunning}, g.Outcome())
+	assert.Equal(t, RunningOutcome(), g.Outcome())
 
 	_, err = g.PushUCIList("g1f3 b8c6 f3g1 c6b8 g1f3 b8c6 f3g1 c6b8")
 	require.NoError(t, err)
-	assert.Equal(t, Outcome{Verdict: VerdictRunning}, g.Outcome())
-	assert.Equal(t, Outcome{Verdict: VerdictRepeat5}, g.CalcOutcome())
+	assert.Equal(t, RunningOutcome(), g.Outcome())
+	assert.Equal(t, MustDrawOutcome(VerdictRepeat5), g.CalcOutcome())
 
 	g.SetAutoOutcome(VerdictFilterStrict)
 	assert.True(t, g.IsFinished())
-	assert.Equal(t, Outcome{Verdict: VerdictRepeat5}, g.Outcome())
+	assert.Equal(t, MustDrawOutcome(VerdictRepeat5), g.Outcome())
 
 	_, ok := g.Pop()
 	assert.True(t, ok)
 	assert.False(t, g.IsFinished())
-	assert.Equal(t, Outcome{Verdict: VerdictRunning}, g.Outcome())
+	assert.Equal(t, RunningOutcome(), g.Outcome())
 
 	g.SetAutoOutcome(VerdictFilterRelaxed)
 	assert.True(t, g.IsFinished())
-	assert.Equal(t, Outcome{Verdict: VerdictRepeat3}, g.Outcome())
+	assert.Equal(t, MustDrawOutcome(VerdictRepeat3), g.Outcome())
 
 	assert.Equal(t, "g1f3 b8c6 f3g1 c6b8 g1f3 b8c6 f3g1 c6b8 g1f3 b8c6 f3g1 c6b8 g1f3 b8c6 f3g1", g.UCIList())
 }
@@ -80,7 +80,7 @@ func TestGameCheckmate(t *testing.T) {
 	_, err := g.PushUCIList("g2g4 e7e5 f2f4 d8h4")
 	require.NoError(t, err)
 
-	outcome := Outcome{Verdict: VerdictCheckmate, Side: ColorBlack}
+	outcome := MustWinOutcome(VerdictCheckmate, ColorBlack)
 	assert.Equal(t, outcome, g.SetAutoOutcome(VerdictFilterForce))
 	assert.True(t, g.IsFinished())
 	assert.Equal(t, outcome, g.Outcome())
@@ -121,13 +121,13 @@ func TestGameOutcome(t *testing.T) {
 	n, err := g.PushUCIList("b7d5 e5d5")
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
-	assert.Equal(t, Outcome{Verdict: VerdictInsufficientMaterial}, g.CalcOutcome())
+	assert.Equal(t, MustDrawOutcome(VerdictInsufficientMaterial), g.CalcOutcome())
 
 	g.SetAutoOutcome(VerdictFilterForce)
-	assert.Equal(t, Outcome{Verdict: VerdictRunning}, g.Outcome())
+	assert.Equal(t, RunningOutcome(), g.Outcome())
 
 	g.SetAutoOutcome(VerdictFilterStrict)
-	assert.Equal(t, Outcome{Verdict: VerdictInsufficientMaterial}, g.Outcome())
+	assert.Equal(t, MustDrawOutcome(VerdictInsufficientMaterial), g.Outcome())
 }
 
 func TestGameOutcome2(t *testing.T) {
@@ -136,7 +136,7 @@ func TestGameOutcome2(t *testing.T) {
 	_, err = g.PushUCIList("a7a8 c6c5 a8a7 c5c6")
 	require.NoError(t, err)
 	assert.Equal(t, "8/R7/2r5/8/5k1K/8/8/8 w - - 102 3", g.CurPos().FEN())
-	assert.Equal(t, Outcome{Verdict: VerdictMoves50}, g.CalcOutcome())
+	assert.Equal(t, MustDrawOutcome(VerdictMoves50), g.CalcOutcome())
 }
 
 func TestGameOutcomePriority(t *testing.T) {
@@ -145,7 +145,7 @@ func TestGameOutcomePriority(t *testing.T) {
 	_, err = g.PushUCIList("a7a8 c6c5 a8a7 c5c6 a7a8 c6c5 a8a7 c5c6 a7a8 c6c5 a8a7 c5c6 a7a8 c6c5 a8a7 c5c6")
 	require.NoError(t, err)
 	assert.Equal(t, "8/R7/2r5/8/5k1K/8/8/8 w - - 106 9", g.CurPos().FEN())
-	assert.Equal(t, Outcome{Verdict: VerdictRepeat5}, g.CalcOutcome())
+	assert.Equal(t, MustDrawOutcome(VerdictRepeat5), g.CalcOutcome())
 	g.SetAutoOutcome(VerdictFilterStrict)
 	assert.True(t, g.IsFinished())
 
@@ -154,7 +154,7 @@ func TestGameOutcomePriority(t *testing.T) {
 	_, err = g.PushUCIList("a7a8 c6c5 a8a7 c5c6 a7a8 c6c5 a8a7 c5c6")
 	require.NoError(t, err)
 	assert.Equal(t, "8/R7/2r5/8/5k1K/8/8/8 w - - 150 5", g.CurPos().FEN())
-	assert.Equal(t, Outcome{Verdict: VerdictMoves75}, g.CalcOutcome())
+	assert.Equal(t, MustDrawOutcome(VerdictMoves75), g.CalcOutcome())
 	g.SetAutoOutcome(VerdictFilterStrict)
 	assert.True(t, g.IsFinished())
 }
@@ -364,7 +364,7 @@ func TestGameStyled(t *testing.T) {
 		},
 		{
 			src: "e2e4 e7e5 g1f3 d7d6 f1b5",
-			out: Outcome{Verdict: VerdictDrawAgreement},
+			out: MustDrawOutcome(VerdictDrawAgreement),
 			style: GameStyle{
 				Move:       MoveStyleSAN,
 				MoveNumber: MoveNumberStyle{Enabled: true},
@@ -374,7 +374,7 @@ func TestGameStyled(t *testing.T) {
 		},
 		{
 			src: "e2e4 e7e5 g1f3 d7d6 f1b5",
-			out: Outcome{Verdict: VerdictDrawAgreement},
+			out: MustDrawOutcome(VerdictDrawAgreement),
 			style: GameStyle{
 				Move:       MoveStyleSAN,
 				MoveNumber: MoveNumberStyle{Enabled: true},
@@ -384,7 +384,7 @@ func TestGameStyled(t *testing.T) {
 		},
 		{
 			src: "e2e4 e7e5 g1f3 d7d6 f1b5",
-			out: Outcome{Verdict: VerdictDrawAgreement},
+			out: MustDrawOutcome(VerdictDrawAgreement),
 			style: GameStyle{
 				Move:       MoveStyleSAN,
 				MoveNumber: MoveNumberStyle{Enabled: true},
@@ -471,11 +471,10 @@ func TestGamePushExtra(t *testing.T) {
 
 	g.PushLegalMove(mv)
 
-	err = g.PushUCIMove(UCIMove{
-		Kind: UCIMoveSimple,
-		Src:  CoordFromParts(FileE, Rank7),
-		Dst:  CoordFromParts(FileE, Rank5),
-	})
+	err = g.PushUCIMove(SimpleUCIMove(
+		CoordFromParts(FileE, Rank7),
+		CoordFromParts(FileE, Rank5),
+	))
 	require.NoError(t, err)
 
 	_, err = g.PushUCIList("f1c4 f8c5 c4f7")

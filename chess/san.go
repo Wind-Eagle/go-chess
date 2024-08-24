@@ -3,6 +3,8 @@ package chess
 import (
 	"fmt"
 	"strings"
+
+	"github.com/alex65536/go-chess/util/maybe"
 )
 
 type sanStyleTable struct {
@@ -55,13 +57,13 @@ func sanResolveAmbiguity(m Move, candidates []Move) (needsFile bool, needsRank b
 	return
 }
 
-func sanSelectMove(file File, rank Rank, hasFile, hasRank bool, candidates []Move) (Move, error) {
+func sanSelectMove(file maybe.Maybe[File], rank maybe.Maybe[Rank], candidates []Move) (Move, error) {
 	srcs := BbFull
-	if hasFile {
-		srcs &= BbFile(file)
+	if f, ok := file.TryGet(); ok {
+		srcs &= BbFile(f)
 	}
-	if hasRank {
-		srcs &= BbRank(rank)
+	if r, ok := rank.TryGet(); ok {
+		srcs &= BbRank(r)
 	}
 	found := false
 	var m Move
@@ -97,16 +99,6 @@ const (
 	sanMoveSimple
 )
 
-type sanMoveFlags uint8
-
-const (
-	sanMoveIsCapture sanMoveFlags = 1 << iota
-	sanMoveIsShortCapture
-	sanMoveHasPromote
-	sanMoveHasFile
-	sanMoveHasRank
-)
-
 type sanMove struct {
 	kind  sanMoveKind
 	check sanCheckMark
@@ -118,17 +110,18 @@ type sanMove struct {
 	castling CastlingSide
 
 	// sanMoveSimple
-	flags   sanMoveFlags
-	piece   Piece
-	dst     Coord // When sanMoveIsShortCapture, rank is always set to Rank8
-	promote Piece
-	file    File
-	rank    Rank
+	isCapture      bool
+	isShortCapture bool
+	piece          Piece
+	dst            Coord // When isShortCapture, rank is always set to Rank8
+	promote        maybe.Maybe[Piece]
+	file           maybe.Maybe[File]
+	rank           maybe.Maybe[Rank]
 }
 
 func sanMoveFromMoveWithoutCheck(m Move, b *Board) sanMove {
 	if m.kind == MoveNull {
-		return sanMove{kind: sanMoveUCI, uci: UCIMove{Kind: UCIMoveNull}}
+		return sanMove{kind: sanMoveUCI, uci: NullUCIMove()}
 	}
 	if s, ok := m.kind.CastlingSide(); ok {
 		return sanMove{kind: sanMoveCastling, castling: s}
@@ -139,14 +132,17 @@ func sanMoveFromMoveWithoutCheck(m Move, b *Board) sanMove {
 		panic("must not happen")
 	}
 	san := sanMove{
-		kind:  sanMoveSimple,
-		flags: 0,
-		piece: piece,
-		dst:   m.dst,
+		kind:           sanMoveSimple,
+		isCapture:      false,
+		isShortCapture: false,
+		piece:          piece,
+		dst:            m.dst,
+		promote:        maybe.None[Piece](),
+		file:           maybe.None[File](),
+		rank:           maybe.None[Rank](),
 	}
 	if promote, ok := m.kind.Promote(); ok {
-		san.flags |= sanMoveHasPromote
-		san.promote = promote
+		san.promote = maybe.Some(promote)
 	}
 
 	switch m.kind {
@@ -154,24 +150,21 @@ func sanMoveFromMoveWithoutCheck(m Move, b *Board) sanMove {
 		MovePromoteKnight, MovePromoteBishop, MovePromoteRook, MovePromoteQueen:
 		isCapture := m.kind == MoveEnpassant || b.Get(m.dst).IsOccupied()
 		if isCapture {
-			san.flags |= sanMoveIsCapture
+			san.isCapture = true
 		}
 		if piece == PiecePawn {
 			if isCapture {
-				san.flags |= sanMoveHasFile
-				san.file = m.src.File()
+				san.file = maybe.Some(m.src.File())
 			}
 		} else {
 			var buf [8]Move
 			moves := b.sanCandidates(piece, m.dst, buf[:0])
 			needsFile, needsRank := sanResolveAmbiguity(m, moves)
 			if needsFile {
-				san.flags |= sanMoveHasFile
-				san.file = m.src.File()
+				san.file = maybe.Some(m.src.File())
 			}
 			if needsRank {
-				san.flags |= sanMoveHasRank
-				san.rank = m.src.Rank()
+				san.rank = maybe.Some(m.src.Rank())
 			}
 		}
 	case MoveNull, MoveCastlingQueenside, MoveCastlingKingside:
@@ -216,8 +209,12 @@ func sanMoveFromStringWithoutCheck(s string) (sanMove, error) {
 	}
 
 	san := sanMove{
-		kind:  sanMoveSimple,
-		flags: 0,
+		kind:           sanMoveSimple,
+		isCapture:      false,
+		isShortCapture: false,
+		promote:        maybe.None[Piece](),
+		file:           maybe.None[File](),
+		rank:           maybe.None[Rank](),
 	}
 
 	switch s[0] {
@@ -246,17 +243,17 @@ func sanMoveFromStringWithoutCheck(s string) (sanMove, error) {
 		}
 		s = s[:len(s)-2]
 		if len(s) != 0 && 'a' <= s[0] && s[0] <= 'h' {
-			san.flags |= sanMoveHasFile
-			san.file, _ = FileFromByte(s[0])
+			f, _ := FileFromByte(s[0])
+			san.file = maybe.Some(f)
 			s = s[1:]
 		}
 		if len(s) != 0 && '1' <= s[0] && s[0] <= '8' {
-			san.flags |= sanMoveHasRank
-			san.rank, _ = RankFromByte(s[0])
+			r, _ := RankFromByte(s[0])
+			san.rank = maybe.Some(r)
 			s = s[1:]
 		}
 		if len(s) != 0 && (s[0] == ':' || s[0] == 'x') {
-			san.flags |= sanMoveIsCapture
+			san.isCapture = true
 			s = s[1:]
 		}
 		if len(s) != 0 {
@@ -264,33 +261,33 @@ func sanMoveFromStringWithoutCheck(s string) (sanMove, error) {
 		}
 	default:
 		// Pawn move
-		hasPromote := true
 		switch s[len(s)-1] {
 		case 'N':
-			san.promote = PieceKnight
+			san.promote = maybe.Some(PieceKnight)
 		case 'B':
-			san.promote = PieceBishop
+			san.promote = maybe.Some(PieceBishop)
 		case 'R':
-			san.promote = PieceRook
+			san.promote = maybe.Some(PieceRook)
 		case 'Q':
-			san.promote = PieceQueen
+			san.promote = maybe.Some(PieceQueen)
 		default:
-			hasPromote = false
+			san.promote = maybe.None[Piece]()
 		}
-		if hasPromote {
+		if san.promote.IsSome() {
 			s = s[:len(s)-1]
 			if len(s) != 0 && s[len(s)-1] == '=' {
 				s = s[:len(s)-1]
 			}
-			san.flags |= sanMoveHasPromote
 		}
 		if len(s) < 2 {
 			return sanMove{}, fmt.Errorf("san pawn move is too short")
 		}
 		if len(s) == 2 && 'a' <= s[0] && s[0] <= 'h' && 'a' <= s[1] && s[1] <= 'h' {
 			// Short capture
-			san.flags |= sanMoveIsCapture | sanMoveIsShortCapture | sanMoveHasFile
-			san.file, _ = FileFromByte(s[0])
+			san.isCapture = true
+			san.isShortCapture = true
+			srcFile, _ := FileFromByte(s[0])
+			san.file = maybe.Some(srcFile)
 			dstFile, _ := FileFromByte(s[1])
 			san.dst = CoordFromParts(dstFile, Rank8)
 		} else {
@@ -308,8 +305,9 @@ func sanMoveFromStringWithoutCheck(s string) (sanMove, error) {
 				if !('a' <= s[0] && s[0] <= 'h' && (s[1] == ':' || s[1] == 'x')) {
 					return sanMove{}, fmt.Errorf("bad san pawn move")
 				}
-				san.flags |= sanMoveIsCapture | sanMoveHasFile
-				san.file, _ = FileFromByte(s[0])
+				san.isCapture = true
+				f, _ := FileFromByte(s[0])
+				san.file = maybe.Some(f)
 			default:
 				return sanMove{}, fmt.Errorf("san pawn move too long")
 			}
@@ -339,10 +337,6 @@ func sanMoveFromString(s string) (sanMove, error) {
 	return m, nil
 }
 
-func (m sanMove) hasFlag(f sanMoveFlags) bool {
-	return (m.flags & f) != 0
-}
-
 func (m sanMove) styledWithoutCheck(tab *sanStyleTable) (string, error) {
 	switch m.kind {
 	case sanMoveUCI:
@@ -360,46 +354,43 @@ func (m sanMove) styledWithoutCheck(tab *sanStyleTable) (string, error) {
 		var b strings.Builder
 		switch m.piece {
 		case PiecePawn:
-			if m.hasFlag(sanMoveIsCapture) {
-				const allowedFlags = sanMoveIsCapture | sanMoveIsShortCapture | sanMoveHasFile | sanMoveHasPromote
-				if m.flags != (m.flags&allowedFlags) || !m.hasFlag(sanMoveHasFile) {
+			if m.isCapture {
+				if m.rank.IsSome() || m.file.IsNone() {
 					return "", fmt.Errorf("invalid san move")
 				}
-				if m.hasFlag(sanMoveIsShortCapture) {
-					_ = b.WriteByte(m.file.ToByte())
+				if m.isShortCapture {
+					_ = b.WriteByte(m.file.Get().ToByte())
 					_ = b.WriteByte(m.dst.File().ToByte())
 				} else {
-					_ = b.WriteByte(m.file.ToByte())
+					_ = b.WriteByte(m.file.Get().ToByte())
 					_ = b.WriteByte('x')
 					_, _ = b.WriteString(m.dst.String())
 				}
 			} else {
-				const allowedFlags = sanMoveHasPromote
-				if m.flags != (m.flags & allowedFlags) {
+				if m.isCapture || m.isShortCapture || m.rank.IsSome() || m.file.IsSome() {
 					return "", fmt.Errorf("invalid san move")
 				}
 				_, _ = b.WriteString(m.dst.String())
 			}
-			if m.hasFlag(sanMoveHasPromote) {
-				if _, ok := MoveKindFromPromote(m.promote); !ok {
+			if p, ok := m.promote.TryGet(); ok {
+				if _, ok := MoveKindFromPromote(p); !ok {
 					return "", fmt.Errorf("invalid san move")
 				}
 				_, _ = b.WriteString(tab.promoteSign)
-				_, _ = b.WriteRune(tab.pieces[m.promote])
+				_, _ = b.WriteRune(tab.pieces[p])
 			}
 		case PieceKing, PieceKnight, PieceBishop, PieceRook, PieceQueen:
-			const allowedFlags = sanMoveIsCapture | sanMoveHasFile | sanMoveHasRank
-			if m.flags != (m.flags & allowedFlags) {
+			if m.isShortCapture || m.promote.IsSome() {
 				return "", fmt.Errorf("invalid san move")
 			}
 			_, _ = b.WriteRune(tab.pieces[m.piece])
-			if m.hasFlag(sanMoveHasFile) {
-				_ = b.WriteByte(m.file.ToByte())
+			if f, ok := m.file.TryGet(); ok {
+				_ = b.WriteByte(f.ToByte())
 			}
-			if m.hasFlag(sanMoveHasRank) {
-				_ = b.WriteByte(m.rank.ToByte())
+			if r, ok := m.rank.TryGet(); ok {
+				_ = b.WriteByte(r.ToByte())
 			}
-			if m.hasFlag(sanMoveIsCapture) {
+			if m.isCapture {
 				_ = b.WriteByte('x')
 			}
 			_, _ = b.WriteString(m.dst.String())
@@ -449,22 +440,19 @@ func (m sanMove) toLegalMoveImpl(b *Board) (move Move, needValidate bool, err er
 		case PiecePawn:
 			pawn := CellFromParts(b.r.Side, PiecePawn)
 			kind := MoveSimple
-			if m.hasFlag(sanMoveHasPromote) {
-				var ok bool
-				kind, ok = MoveKindFromPromote(m.promote)
+			if p, ok := m.promote.TryGet(); ok {
+				kind, ok = MoveKindFromPromote(p)
 				if !ok {
 					return Move{}, false, fmt.Errorf("invalid san move")
 				}
 			}
-			if m.hasFlag(sanMoveIsCapture) {
-				const allowedFlags = sanMoveIsCapture | sanMoveIsShortCapture | sanMoveHasFile | sanMoveHasPromote
-				if m.flags != (m.flags&allowedFlags) || !m.hasFlag(sanMoveHasFile) {
+			if m.isCapture {
+				if m.rank.IsSome() || m.file.IsNone() {
 					return Move{}, false, fmt.Errorf("invalid san move")
 				}
-				if m.hasFlag(sanMoveIsShortCapture) {
-					isPromote := m.hasFlag(sanMoveHasPromote)
-					moves := b.sanPawnCaptureCandidates(m.file, m.dst.File(), isPromote, m.promote, buf[:0])
-					res, err := sanSelectMove(File(0), Rank(0), false, false, moves)
+				if m.isShortCapture {
+					moves := b.sanPawnCaptureCandidates(m.file.Get(), m.dst.File(), m.promote, buf[:0])
+					res, err := sanSelectMove(maybe.None[File](), maybe.None[Rank](), moves)
 					if err != nil {
 						return Move{}, false, err
 					}
@@ -484,7 +472,7 @@ func (m sanMove) toLegalMoveImpl(b *Board) (move Move, needValidate bool, err er
 					if kind != MoveEnpassant && b.Get(m.dst).IsFree() {
 						return Move{}, false, fmt.Errorf("capture is expected")
 					}
-					src := CoordFromParts(m.file, m.dst.Rank()).Add(-pawnForwardDelta(b.r.Side))
+					src := CoordFromParts(m.file.Get(), m.dst.Rank()).Add(-pawnForwardDelta(b.r.Side))
 					res, err := NewMove(kind, pawn, src, m.dst)
 					if err != nil {
 						return Move{}, false, errMoveNotWellFormed
@@ -492,8 +480,7 @@ func (m sanMove) toLegalMoveImpl(b *Board) (move Move, needValidate bool, err er
 					return res, true, nil
 				}
 			} else {
-				const allowedFlags = sanMoveHasPromote
-				if m.flags != (m.flags & allowedFlags) {
+				if m.isCapture || m.isShortCapture || m.file.IsSome() || m.rank.IsSome() {
 					return Move{}, false, fmt.Errorf("invalid san move")
 				}
 				if m.dst.Rank() == homeRank(b.r.Side) {
@@ -514,16 +501,14 @@ func (m sanMove) toLegalMoveImpl(b *Board) (move Move, needValidate bool, err er
 				return res, true, nil
 			}
 		case PieceKing, PieceKnight, PieceBishop, PieceRook, PieceQueen:
-			const allowedFlags = sanMoveIsCapture | sanMoveHasFile | sanMoveHasRank
-			if m.flags != (m.flags & allowedFlags) {
+			if m.isShortCapture || m.promote.IsSome() {
 				return Move{}, false, fmt.Errorf("invalid san move")
 			}
-			if m.hasFlag(sanMoveIsCapture) && b.Get(m.dst).IsFree() {
+			if m.isCapture && b.Get(m.dst).IsFree() {
 				return Move{}, false, fmt.Errorf("capture is expected")
 			}
 			moves := b.sanCandidates(m.piece, m.dst, buf[:0])
-			hasFile, hasRank := m.hasFlag(sanMoveHasFile), m.hasFlag(sanMoveHasRank)
-			res, err := sanSelectMove(m.file, m.rank, hasFile, hasRank, moves)
+			res, err := sanSelectMove(m.file, m.rank, moves)
 			if err != nil {
 				return Move{}, false, err
 			}

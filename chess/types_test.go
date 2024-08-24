@@ -110,15 +110,27 @@ func TestCastling(t *testing.T) {
 }
 
 func TestOutcome(t *testing.T) {
-	o1 := Outcome{Verdict: VerdictCheckmate, Side: ColorWhite}
-	o2 := Outcome{Verdict: VerdictCheckmate, Side: ColorBlack}
-	o3 := Outcome{Verdict: VerdictStalemate, Side: ColorWhite}
-	o4 := Outcome{Verdict: VerdictStalemate, Side: ColorBlack}
-	o5 := Outcome{Verdict: VerdictRunning}
-	assert.False(t, o1.Eq(o2))
-	assert.False(t, o2.Eq(o3))
-	assert.True(t, o3.Eq(o4))
-	assert.False(t, o4.Eq(o5))
+	o1 := NewOutcome(VerdictCheckmate, ColorWhite)
+	o2 := NewOutcome(VerdictCheckmate, ColorBlack)
+	o3 := NewOutcome(VerdictStalemate, ColorWhite)
+	o4 := NewOutcome(VerdictStalemate, ColorBlack)
+	o5 := RunningOutcome()
+	assert.NotEqual(t, o1, o2)
+	assert.NotEqual(t, o2, o3)
+	assert.Equal(t, o3, o4)
+	assert.NotEqual(t, o4, o5)
+
+	assert.Equal(t, VerdictCheckmate, o1.Verdict())
+	assert.Equal(t, VerdictStalemate, o3.Verdict())
+	assert.Equal(t, VerdictRunning, o5.Verdict())
+
+	s, ok := o1.Side()
+	assert.True(t, ok)
+	assert.Equal(t, ColorWhite, s)
+	s, ok = o3.Side()
+	assert.False(t, ok)
+	s, ok = o5.Side()
+	assert.False(t, ok)
 
 	assert.Equal(t, StatusWhiteWins, o1.Status())
 	assert.Equal(t, StatusBlackWins, o2.Status())

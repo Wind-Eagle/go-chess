@@ -77,7 +77,7 @@ func NewGameWithPosition(b *Board) *Game {
 		board:   b.Clone(),
 		repeat:  NewRepeatTable(),
 		stack:   nil,
-		outcome: Outcome{Verdict: VerdictRunning},
+		outcome: RunningOutcome(),
 	}
 	g.repeat.Push(g.board)
 	return g
@@ -139,7 +139,7 @@ func (g *Game) IsFinished() bool {
 }
 
 func (g *Game) ClearOutcome() {
-	g.outcome = Outcome{Verdict: VerdictRunning}
+	g.outcome = RunningOutcome()
 }
 
 func (g *Game) SetOutcome(o Outcome) {
@@ -148,15 +148,15 @@ func (g *Game) SetOutcome(o Outcome) {
 
 func (g *Game) CalcOutcome() Outcome {
 	outcome := g.board.CalcOutcome()
-	if outcome.IsFinished() && outcome.Verdict.Passes(VerdictFilterStrict) {
+	if outcome.IsFinished() && outcome.Verdict().Passes(VerdictFilterStrict) {
 		return outcome
 	}
 	rep := g.repeat.Count(g.board)
 	if rep >= 5 {
-		return Outcome{Verdict: VerdictRepeat5}
+		return MustDrawOutcome(VerdictRepeat5)
 	}
 	if rep >= 3 {
-		return Outcome{Verdict: VerdictRepeat3}
+		return MustDrawOutcome(VerdictRepeat3)
 	}
 	return outcome
 }
@@ -317,7 +317,7 @@ func (g *Game) Styled(style GameStyle) (string, error) {
 
 func (g *Game) Eq(o *Game) bool {
 	return g.start == o.start &&
-		g.outcome.Eq(o.outcome) &&
+		g.outcome == o.outcome &&
 		slices.EqualFunc(g.stack, o.stack, func(a, b Undo) bool {
 			return a.Move() == b.Move()
 		})

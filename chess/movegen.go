@@ -1,5 +1,9 @@
 package chess
 
+import (
+	"github.com/alex65536/go-chess/util/maybe"
+)
+
 func (b *Board) IsCellAttacked(coord Coord, c Color) bool {
 	// Near attacks
 	if !(b.BbPiece(c, PiecePawn) & pawnAttacks(c.Inv(), coord)).IsEmpty() ||
@@ -301,17 +305,17 @@ func (b *Board) sanCandidates(piece Piece, dst Coord, res []Move) []Move {
 	return filterLegalMoves(b, res)
 }
 
-func (b *Board) sanPawnCaptureCandidates(src, dst File, isPromote bool, promote Piece, res []Move) []Move {
+func (b *Board) sanPawnCaptureCandidates(src, dst File, promote maybe.Maybe[Piece], res []Move) []Move {
 	c := b.r.Side
 	bbPromote := BbRank(promoteSrcRank(c))
 	var (
 		bbMask Bitboard
 		kind   MoveKind
 	)
-	if isPromote {
+	if p, ok := promote.TryGet(); ok {
 		bbMask = bbPromote
 		var ok bool
-		kind, ok = MoveKindFromPromote(promote)
+		kind, ok = MoveKindFromPromote(p)
 		if !ok {
 			panic("piece is not supported for promote")
 		}
@@ -342,7 +346,7 @@ func (b *Board) sanPawnCaptureCandidates(src, dst File, isPromote bool, promote 
 		}
 	}
 
-	if ep, ok := b.r.EpSource.TryGet(); ok && !isPromote && ep.File() == dst {
+	if ep, ok := b.r.EpSource.TryGet(); ok && promote.IsNone() && ep.File() == dst {
 		dstCoord := ep.Add(pawnForwardDelta(c))
 		// We assume that the cell behind the pawn that made double move is empty, so don't check it
 		lp, rp := ep.Add(-1), ep.Add(1)

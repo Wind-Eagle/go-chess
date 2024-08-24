@@ -110,11 +110,10 @@ func TestBoardMakeMoveExtra(t *testing.T) {
 	assert.Equal(t, "rn1q1bnr/ppp1kBp1/3p3p/4N3/4P3/2N5/PPPP1PPP/R1BbK2R w KQ - 1 7", b.FEN())
 	b.UnmakeMove(u)
 
-	_, err = b.MakeUCIMove(UCIMove{
-		Kind: UCIMoveSimple,
-		Src:  CoordFromParts(FileE, Rank8),
-		Dst:  CoordFromParts(FileE, Rank7),
-	})
+	_, err = b.MakeUCIMove(SimpleUCIMove(
+		CoordFromParts(FileE, Rank8),
+		CoordFromParts(FileE, Rank7),
+	))
 	require.NoError(t, err)
 	assert.Equal(t, "rn1q1bnr/ppp1kBp1/3p3p/4N3/4P3/2N5/PPPP1PPP/R1BbK2R w KQ - 1 7", b.FEN())
 }
@@ -221,68 +220,68 @@ func TestBoardOutcome(t *testing.T) {
 	}{
 		{
 			fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-			out: Outcome{Verdict: VerdictRunning},
+			out: RunningOutcome(),
 		},
 		{
 			fen: "rn1qkbnr/ppp2B1p/3p2p1/4N3/4P3/2N5/PPPP1PPP/R1BbK2R b KQkq - 0 6",
-			out: Outcome{Verdict: VerdictRunning},
+			out: RunningOutcome(),
 		},
 		{
 			fen: "rn1q1bnr/ppp1kB1p/3p2p1/3NN3/4P3/8/PPPP1PPP/R1BbK2R b KQ - 2 7",
-			out: Outcome{Verdict: VerdictCheckmate, Side: ColorWhite},
+			out: MustWinOutcome(VerdictCheckmate, ColorWhite),
 		},
 		{
 			fen: "7K/8/5n2/5n2/8/8/7k/8 w - - 0 1",
-			out: Outcome{Verdict: VerdictStalemate},
+			out: MustDrawOutcome(VerdictStalemate),
 		},
 		{
 			fen: "7K/8/5n2/8/8/8/7k/8 w - - 0 1",
-			out: Outcome{Verdict: VerdictInsufficientMaterial},
+			out: MustDrawOutcome(VerdictInsufficientMaterial),
 		},
 		{
 			fen: "7K/8/5b2/8/8/8/7k/8 w - - 0 1",
-			out: Outcome{Verdict: VerdictInsufficientMaterial},
+			out: MustDrawOutcome(VerdictInsufficientMaterial),
 		},
 		{
 			fen: "2K4k/8/8/8/B1B5/1B1B4/B1B5/1B1B4 w - - 0 1",
-			out: Outcome{Verdict: VerdictInsufficientMaterial},
+			out: MustDrawOutcome(VerdictInsufficientMaterial),
 		},
 		{
 			fen: "8/3k4/8/8/8/8/1K6/8 w - - 0 1",
-			out: Outcome{Verdict: VerdictInsufficientMaterial},
+			out: MustDrawOutcome(VerdictInsufficientMaterial),
 		},
 		{
 			fen: "8/3k4/8/6B1/5B1B/4B1B1/1K3B1B/4B1B1 w - - 0 1",
-			out: Outcome{Verdict: VerdictInsufficientMaterial},
+			out: MustDrawOutcome(VerdictInsufficientMaterial),
 		},
 		{
 			fen: "BBK4k/8/8/8/8/8/8/8 w - - 0 1",
-			out: Outcome{Verdict: VerdictRunning},
+			out: RunningOutcome(),
 		},
 		{
 			fen: "NNK4k/8/8/8/8/8/8/8 w - - 0 1",
-			out: Outcome{Verdict: VerdictRunning},
+			out: RunningOutcome(),
 		},
 		{
 			fen: "NNK4k/8/8/8/8/8/8/8 w - - 99 80",
-			out: Outcome{Verdict: VerdictRunning},
+			out: RunningOutcome(),
 		},
 		{
 			fen: "NNK4k/8/8/8/8/8/8/8 w - - 100 80",
-			out: Outcome{Verdict: VerdictMoves50},
+			out: MustDrawOutcome(VerdictMoves50),
 		},
 		{
 			fen: "NNK4k/8/8/8/8/8/8/8 w - - 149 90",
-			out: Outcome{Verdict: VerdictMoves50},
+			out: MustDrawOutcome(VerdictMoves50),
 		},
 		{
 			fen: "NNK4k/8/8/8/8/8/8/8 w - - 150 90",
-			out: Outcome{Verdict: VerdictMoves75},
+			out: MustDrawOutcome(VerdictMoves75),
 		},
 	} {
 		b, err := BoardFromFEN(v.fen)
 		require.NoError(t, err)
-		hasLegalMoves := v.out.Verdict != VerdictCheckmate && v.out.Verdict != VerdictStalemate
+		hasLegalMoves := !v.out.IsFinished() || !v.out.Passes(VerdictFilterForce)
 		assert.Equal(t, hasLegalMoves, b.HasLegalMoves())
 		assert.Equal(t, v.out, b.CalcOutcome())
 	}

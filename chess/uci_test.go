@@ -14,24 +14,15 @@ func TestUCIMoveFromString(t *testing.T) {
 	}{
 		{
 			src: "0000",
-			res: UCIMove{Kind: UCIMoveNull},
+			res: NullUCIMove(),
 		},
 		{
 			src: "e2e4",
-			res: UCIMove{
-				Kind: UCIMoveSimple,
-				Src:  CoordFromParts(FileE, Rank2),
-				Dst:  CoordFromParts(FileE, Rank4),
-			},
+			res: SimpleUCIMove(CoordFromParts(FileE, Rank2), CoordFromParts(FileE, Rank4)),
 		},
 		{
 			src: "g7g8q",
-			res: UCIMove{
-				Kind:    UCIMovePromote,
-				Src:     CoordFromParts(FileG, Rank7),
-				Dst:     CoordFromParts(FileG, Rank8),
-				Promote: PieceQueen,
-			},
+			res: PromoteUCIMove(CoordFromParts(FileG, Rank7), CoordFromParts(FileG, Rank8), PieceQueen),
 		},
 	} {
 		m, err := UCIMoveFromString(v.src)
@@ -49,17 +40,13 @@ func TestUCIMoveToMove(t *testing.T) {
 		illegal bool
 	}{
 		{
-			src:     UCIMove{Kind: UCIMoveNull},
+			src:     NullUCIMove(),
 			fen:     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 			res:     NullMove(),
 			illegal: true,
 		},
 		{
-			src: UCIMove{
-				Kind: UCIMoveSimple,
-				Src:  CoordFromParts(FileE, Rank2),
-				Dst:  CoordFromParts(FileE, Rank4),
-			},
+			src: SimpleUCIMove(CoordFromParts(FileE, Rank2), CoordFromParts(FileE, Rank4)),
 			fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 			res: NewMoveUnchecked(
 				MovePawnDouble,
@@ -69,12 +56,7 @@ func TestUCIMoveToMove(t *testing.T) {
 			),
 		},
 		{
-			src: UCIMove{
-				Kind:    UCIMovePromote,
-				Src:     CoordFromParts(FileG, Rank7),
-				Dst:     CoordFromParts(FileG, Rank8),
-				Promote: PieceQueen,
-			},
+			src: PromoteUCIMove(CoordFromParts(FileG, Rank7), CoordFromParts(FileG, Rank8), PieceQueen),
 			fen: "4K3/6P1/8/8/8/k7/8/8 w - - 0 1",
 			res: NewMoveUnchecked(
 				MovePromoteQueen,
