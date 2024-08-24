@@ -79,8 +79,8 @@ func TestPerftPosition4(t *testing.T) {
 	doTestPerft(
 		t,
 		"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-		[]int{6, 264, 9467, 422333, 15833292},
-		[]int{0, 87, 1021, 131393, 2046173},
+		[]int{6, 264, 9467, 422333, 15833292, 706045033},
+		[]int{0, 87, 1021, 131393, 2046173, 210369132},
 	)
 }
 
