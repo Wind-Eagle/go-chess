@@ -127,9 +127,9 @@ func TestOutcome(t *testing.T) {
 	s, ok := o1.Side()
 	assert.True(t, ok)
 	assert.Equal(t, ColorWhite, s)
-	s, ok = o3.Side()
+	_, ok = o3.Side()
 	assert.False(t, ok)
-	s, ok = o5.Side()
+	_, ok = o5.Side()
 	assert.False(t, ok)
 
 	assert.Equal(t, StatusWhiteWins, o1.Status())
