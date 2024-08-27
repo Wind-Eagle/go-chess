@@ -39,26 +39,30 @@ func newCommandExt(cmd command) (commandExt, <-chan commandReply) {
 }
 
 type core struct {
-	ctx    context.Context
-	p      Process
-	l      Logger
-	s      state
-	cmdCh  chan commandExt
-	msgCh  chan string
-	done   atomic.Bool
-	cancel func()
+	ctx      context.Context
+	p        Process
+	l        Logger
+	s        state
+	cmdCh    chan commandExt
+	msgCh    chan string
+	done     atomic.Bool
+	cancel   func()
+	procDone chan struct{}
+	commDone chan struct{}
 }
 
 func newCore(p Process, l Logger, s state) *core {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &core{
-		ctx:    ctx,
-		p:      NewCancellableProcess(ctx, p),
-		l:      l,
-		s:      s,
-		cmdCh:  make(chan commandExt),
-		msgCh:  make(chan string),
-		cancel: cancel,
+		ctx:      ctx,
+		p:        NewCancellableProcess(ctx, p),
+		l:        l,
+		s:        s,
+		cmdCh:    make(chan commandExt),
+		msgCh:    make(chan string),
+		cancel:   cancel,
+		procDone: make(chan struct{}),
+		commDone: make(chan struct{}),
 	}
 	c.done.Store(false)
 	go c.commLoop()
@@ -67,12 +71,19 @@ func newCore(p Process, l Logger, s state) *core {
 }
 
 func (c *core) Done() <-chan struct{} {
-	return c.ctx.Done()
+	return c.commDone
 }
 
-func (c *core) Cancel() {
+func (c *core) doCancel() {
 	if !c.done.Swap(true) {
 		c.cancel()
+	}
+}
+
+func (c *core) Cancel(wait bool) {
+	c.doCancel()
+	if wait {
+		<-c.commDone
 	}
 }
 
@@ -84,17 +95,19 @@ func (c *core) Send(ctx context.Context, cmd command) (any, error) {
 		return r.res, r.err
 	case <-ctx.Done():
 		return nil, fmt.Errorf("wait: %w", ctx.Err())
-	case <-c.Done():
+	case <-c.commDone:
 		return nil, errTerminated
 	}
 }
 
 func (c *core) commLoop() {
+	defer close(c.commDone)
+loop:
 	for {
 		ln, err := c.p.Recv()
 		if err != nil {
 			select {
-			case <-c.Done():
+			case <-c.ctx.Done():
 			default:
 				if !errors.Is(err, io.EOF) {
 					c.l.Printf("cannot receive line from engine: %v", err)
@@ -104,10 +117,11 @@ func (c *core) commLoop() {
 		}
 		select {
 		case c.msgCh <- ln:
-		case <-c.Done():
+		case <-c.ctx.Done():
+			break loop
 		}
 	}
-	c.Cancel()
+	c.doCancel()
 	select {
 	case <-c.p.Done():
 		if err := c.p.Err(); err != nil {
@@ -117,14 +131,16 @@ func (c *core) commLoop() {
 		c.l.Printf("killing engine")
 		c.p.Kill()
 	}
+	<-c.procDone
 }
 
 func (c *core) processLoop() {
+	defer close(c.procDone)
 	defer c.s.Finish()
 
 	if err := c.s.Start(c.ctx, c.p); err != nil {
 		c.l.Printf("cannot start: %v", err)
-		c.Cancel()
+		c.doCancel()
 		return
 	}
 
@@ -151,11 +167,11 @@ func (c *core) processLoop() {
 			if canSend {
 				if err := c.p.Send(realCmd.Serialize()); err != nil {
 					c.l.Printf("cannot send command: %v", err)
-					c.Cancel()
+					c.doCancel()
 					return
 				}
 			}
-		case <-c.Done():
+		case <-c.ctx.Done():
 			return
 		}
 	}

@@ -91,7 +91,7 @@ func (e *Engine) waitInitializedThread() {
 	defer cancel()
 	if err := e.WaitInitialized(ctx); err != nil {
 		e.l.Printf("wait initialized failed: %v", err)
-		e.c.Cancel()
+		e.Cancel(false)
 		return
 	}
 }
@@ -103,20 +103,19 @@ func (e *Engine) watchCtxThread(watchedCtx context.Context) {
 		return
 	}
 	if e.o.NoWaitOnCancel {
-		e.c.Cancel()
+		e.Cancel(false)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), e.o.WaitOnCancelTimeout)
 	defer cancel()
 	if err := e.Quit(ctx, true); err != nil {
 		e.l.Printf("engine has not terminated gracefully: %v", err)
-		e.c.Cancel()
 		return
 	}
 }
 
-func (e *Engine) Cancel() {
-	e.c.Cancel()
+func (e *Engine) Cancel(wait bool) {
+	e.c.Cancel(wait)
 }
 
 func (e *Engine) Done() <-chan struct{} {
@@ -241,7 +240,7 @@ func (e *Engine) Quit(ctx context.Context, wait bool) error {
 		default:
 		}
 		if wait {
-			e.c.Cancel()
+			e.Cancel(true)
 		}
 		return fmt.Errorf("send \"quit\": %w", err)
 	}
@@ -250,7 +249,7 @@ func (e *Engine) Quit(ctx context.Context, wait bool) error {
 	}
 	select {
 	case <-ctx.Done():
-		e.c.Cancel()
+		e.Cancel(true)
 		return fmt.Errorf("wait: %w", ctx.Err())
 	case <-e.Done():
 		return nil
