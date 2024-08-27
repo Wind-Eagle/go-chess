@@ -2,6 +2,7 @@ package chess
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 )
@@ -43,6 +44,12 @@ func (r *RepeatTable) Count(b *Board) int {
 	return r.mp[k]
 }
 
+func (r *RepeatTable) Clone() *RepeatTable {
+	return &RepeatTable{
+		mp: maps.Clone(r.mp),
+	}
+}
+
 type MoveNumberStyle struct {
 	Enabled         bool
 	Custom          bool
@@ -69,6 +76,16 @@ type Game struct {
 	repeat  *RepeatTable
 	stack   []Undo
 	outcome Outcome
+}
+
+func (g *Game) Clone() *Game {
+	return &Game{
+		start:   g.start,
+		board:   g.board.Clone(),
+		repeat:  g.repeat.Clone(),
+		stack:   slices.Clone(g.stack),
+		outcome: g.outcome,
+	}
 }
 
 func NewGameWithPosition(b *Board) *Game {
