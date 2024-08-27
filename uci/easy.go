@@ -33,7 +33,7 @@ func NewEasyEngine(ctx context.Context, o EasyEngineOptions) (*Engine, error) {
 	e := NewEngine(ctx, p, o.Logger, o.Options)
 	if o.WaitInitialized {
 		if err := e.WaitInitialized(ctx); err != nil {
-			e.Cancel(true)
+			e.Close()
 			return nil, fmt.Errorf("wait for initialization: %w", err)
 		}
 	}

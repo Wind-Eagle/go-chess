@@ -74,17 +74,15 @@ func (c *core) Done() <-chan struct{} {
 	return c.commDone
 }
 
-func (c *core) doCancel() {
+func (c *core) Cancel() {
 	if !c.done.Swap(true) {
 		c.cancel()
 	}
 }
 
-func (c *core) Cancel(wait bool) {
-	c.doCancel()
-	if wait {
-		<-c.commDone
-	}
+func (c *core) Close() {
+	c.Cancel()
+	<-c.commDone
 }
 
 func (c *core) Send(ctx context.Context, cmd command) (any, error) {
@@ -121,7 +119,7 @@ loop:
 			break loop
 		}
 	}
-	c.doCancel()
+	c.Cancel()
 	select {
 	case <-c.p.Done():
 		if err := c.p.Err(); err != nil {
@@ -140,7 +138,7 @@ func (c *core) processLoop() {
 
 	if err := c.s.Start(c.ctx, c.p); err != nil {
 		c.l.Printf("cannot start: %v", err)
-		c.doCancel()
+		c.Cancel()
 		return
 	}
 
@@ -167,7 +165,7 @@ func (c *core) processLoop() {
 			if canSend {
 				if err := c.p.Send(realCmd.Serialize()); err != nil {
 					c.l.Printf("cannot send command: %v", err)
-					c.doCancel()
+					c.Cancel()
 					return
 				}
 			}
