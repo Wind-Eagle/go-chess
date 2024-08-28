@@ -45,6 +45,14 @@ func None[T any]() Maybe[T] {
 	return Maybe[T]{some: false}
 }
 
+func Pack[T any](v T, ok bool) Maybe[T] {
+	if ok {
+		return Maybe[T]{some: true, v: v}
+	} else {
+		return Maybe[T]{some: false}
+	}
+}
+
 func (m *Maybe[T]) UnmarshalJSON(data []byte) error {
 	var v *T
 	if err := json.Unmarshal(data, &v); err != nil {
