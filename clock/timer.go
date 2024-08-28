@@ -124,7 +124,10 @@ func (t *Timer) doCheckForfeit() {
 	}
 }
 
-func (t *Timer) doUpdate() {
+func (t *Timer) Update() {
+	if t.outcome.IsFinished() {
+		return
+	}
 	now := t.nowFn()
 	if now.After(t.cur) {
 		*t.clock.Side(t.side) -= now.Sub(t.cur)
@@ -142,7 +145,7 @@ func (t *Timer) Flip() {
 	if t.outcome.IsFinished() {
 		return
 	}
-	t.doUpdate()
+	t.Update()
 	if t.outcome.IsFinished() {
 		return
 	}
@@ -153,18 +156,11 @@ func (t *Timer) Stop(outcome chess.Outcome) {
 	if !outcome.IsFinished() || t.outcome.IsFinished() {
 		return
 	}
-	t.doUpdate()
+	t.Update()
 	if t.outcome.IsFinished() {
 		return
 	}
 	t.outcome = outcome
-}
-
-func (t *Timer) Update() {
-	if t.outcome.IsFinished() {
-		return
-	}
-	t.doUpdate()
 }
 
 func (t *Timer) UCITimeSpec() UCITimeSpec {

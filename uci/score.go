@@ -21,11 +21,7 @@ type Score struct {
 
 func (s Score) String() string {
 	if s.mate {
-		if s.val > 0 {
-			return fmt.Sprintf("win@%v", s.val)
-		} else {
-			return fmt.Sprintf("loss@%v", -s.val)
-		}
+		return fmt.Sprintf("#%v", s.val)
 	} else {
 		if s.val > 0 {
 			return fmt.Sprintf("+%v.%02d", s.val/100, s.val%100)
