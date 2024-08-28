@@ -70,6 +70,10 @@ type GameStyle struct {
 	Outcome    GameOutcomeStyle
 }
 
+type GameAnnotations struct {
+	Comments []string
+}
+
 type Game struct {
 	start   RawBoard
 	board   *Board
@@ -287,7 +291,20 @@ func (g *Game) Walk() Walker {
 }
 
 func (g *Game) Styled(style GameStyle) (string, error) {
+	return g.StyledExt(style, GameAnnotations{})
+}
+
+func (g *Game) StyledExt(style GameStyle, ga GameAnnotations) (string, error) {
 	var b strings.Builder
+
+	first := true
+	if len(ga.Comments) > 0 && ga.Comments[0] != "" {
+		if !first {
+			_ = b.WriteByte(' ')
+		}
+		first = false
+		_, _ = fmt.Fprintf(&b, "{%v}", strings.ReplaceAll(ga.Comments[0], "}", ""))
+	}
 
 	if len(g.stack) != 0 {
 		w := g.Walk()
@@ -298,22 +315,29 @@ func (g *Game) Styled(style GameStyle) (string, error) {
 		} else {
 			moveNumber = int(w.Board().MoveNumber())
 		}
+		mustNumber := true
 		for i, u := range g.stack {
-			if i != 0 {
+			if !first {
 				_ = b.WriteByte(' ')
 			}
+			first = false
 			if style.MoveNumber.Enabled {
 				if w.Board().Side() == ColorWhite {
 					_, _ = fmt.Fprintf(&b, "%v. ", moveNumber)
-				} else if i == 0 {
+				} else if mustNumber {
 					_, _ = fmt.Fprintf(&b, "%v... ", moveNumber)
 				}
 			}
+			mustNumber = false
 			s, err := u.Move().Styled(w.Board(), style.Move)
 			if err != nil {
 				return "", fmt.Errorf("style move #%d: %w", i+1, err)
 			}
 			_, _ = b.WriteString(s)
+			if len(ga.Comments) > i+1 && ga.Comments[i+1] != "" {
+				_, _ = fmt.Fprintf(&b, " {%v}", strings.ReplaceAll(ga.Comments[i+1], "}", ""))
+				mustNumber = true
+			}
 			if w.Board().Side() == ColorBlack {
 				moveNumber++
 			}
@@ -323,9 +347,10 @@ func (g *Game) Styled(style GameStyle) (string, error) {
 
 	if style.Outcome == GameOutcomeShow ||
 		(style.Outcome == GameOutcomeFinishedOnly && g.outcome.IsFinished()) {
-		if len(g.stack) != 0 {
+		if !first {
 			_ = b.WriteByte(' ')
 		}
+		first = false // nolint:ineffassign
 		_, _ = b.WriteString(g.outcome.Status().String())
 	}
 

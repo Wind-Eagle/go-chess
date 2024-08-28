@@ -494,3 +494,105 @@ func TestGamePushExtra(t *testing.T) {
 	assert.Equal(t, "rnbq2nr/pppp1kpp/8/2b1p3/4P3/8/PPPP1PPP/RNBQK1NR w KQ - 0 4", g.CurPos().FEN())
 	assert.Equal(t, 6, g.Len())
 }
+
+func TestGameStyledExt(t *testing.T) {
+	for _, v := range []struct {
+		src   string
+		out   Outcome
+		ga    GameAnnotations
+		noOut bool
+		res   string
+	}{
+		{
+			src: "",
+			out: MustDrawOutcome(VerdictDrawAgreement),
+			ga:  GameAnnotations{Comments: nil},
+			res: "1/2-1/2",
+		},
+		{
+			src: "",
+			out: MustDrawOutcome(VerdictDrawAgreement),
+			ga:  GameAnnotations{Comments: []string{""}},
+			res: "1/2-1/2",
+		},
+		{
+			src: "",
+			out: MustDrawOutcome(VerdictDrawAgreement),
+			ga:  GameAnnotations{Comments: []string{"players refused to play"}},
+			res: "{players refused to play} 1/2-1/2",
+		},
+		{
+			src:   "",
+			out:   RunningOutcome(),
+			ga:    GameAnnotations{Comments: []string{""}},
+			noOut: true,
+			res:   "",
+		},
+		{
+			src:   "",
+			out:   RunningOutcome(),
+			ga:    GameAnnotations{Comments: []string{"hello {world}!}}}!"}},
+			noOut: true,
+			res:   "{hello {world!!}",
+		},
+		{
+			src: "e2e4 e7e5",
+			out: RunningOutcome(),
+			ga:  GameAnnotations{Comments: nil},
+			res: "1. e4 e5 *",
+		},
+		{
+			src: "e2e4 e7e5",
+			out: RunningOutcome(),
+			ga:  GameAnnotations{Comments: []string{"first", "second", "third"}},
+			res: "{first} 1. e4 {second} 1... e5 {third} *",
+		},
+		{
+			src: "e2e4 e7e5",
+			out: RunningOutcome(),
+			ga:  GameAnnotations{Comments: []string{"first", "", "third"}},
+			res: "{first} 1. e4 e5 {third} *",
+		},
+		{
+			src: "e2e4 e7e5 g1f3",
+			out: RunningOutcome(),
+			ga:  GameAnnotations{Comments: []string{"first", "second", "third", "fourth"}},
+			res: "{first} 1. e4 {second} 1... e5 {third} 2. Nf3 {fourth} *",
+		},
+		{
+			src: "e2e4 e7e5 g1f3",
+			out: RunningOutcome(),
+			ga:  GameAnnotations{Comments: []string{"first", "second", "third"}},
+			res: "{first} 1. e4 {second} 1... e5 {third} 2. Nf3 *",
+		},
+		{
+			src: "e2e4 e7e5 g1f3",
+			out: RunningOutcome(),
+			ga:  GameAnnotations{Comments: []string{"first", "second", "", "fourth"}},
+			res: "{first} 1. e4 {second} 1... e5 2. Nf3 {fourth} *",
+		},
+		{
+			src: "e2e4 e7e5 g1f3",
+			out: RunningOutcome(),
+			ga:  GameAnnotations{Comments: []string{"fir}st", "", "", "four}th"}},
+			res: "{first} 1. e4 e5 2. Nf3 {fourth} *",
+		},
+	} {
+		g, err := GameFromUCIList(InitialBoard(), v.src)
+		require.NoError(t, err)
+		g.SetOutcome(v.out)
+
+		out := GameOutcomeShow
+		if v.noOut {
+			out = GameOutcomeHide
+		}
+
+		s, err := g.StyledExt(GameStyle{
+			Move:       MoveStyleSAN,
+			MoveNumber: MoveNumberStyle{Enabled: true},
+			Outcome:    out,
+		}, v.ga)
+		require.NoError(t, err)
+		assert.Equal(t, v.res, s)
+	}
+}
