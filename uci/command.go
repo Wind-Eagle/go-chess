@@ -113,20 +113,18 @@ func (c cmdGo) Serialize() string {
 	if c.opts.Ponder {
 		_, _ = b.WriteString(" ponder")
 	}
-	if v, ok := c.opts.Wtime.TryGet(); ok {
-		_, _ = fmt.Fprintf(&b, " wtime %v", v.Milliseconds())
-	}
-	if v, ok := c.opts.Btime.TryGet(); ok {
-		_, _ = fmt.Fprintf(&b, " btime %v", v.Milliseconds())
-	}
-	if v, ok := c.opts.Winc.TryGet(); ok {
-		_, _ = fmt.Fprintf(&b, " winc %v", v.Milliseconds())
-	}
-	if v, ok := c.opts.Binc.TryGet(); ok {
-		_, _ = fmt.Fprintf(&b, " binc %v", v.Milliseconds())
-	}
-	if c.opts.MovesToGo != 0 {
-		_, _ = fmt.Fprintf(&b, " movestogo %v", c.opts.MovesToGo)
+	if s, ok := c.opts.TimeSpec.TryGet(); ok {
+		_, _ = fmt.Fprintf(&b, " wtime %v", s.Wtime.Milliseconds())
+		_, _ = fmt.Fprintf(&b, " btime %v", s.Btime.Milliseconds())
+		if ms := s.Winc.Milliseconds(); ms != 0 {
+			_, _ = fmt.Fprintf(&b, " winc %v", ms)
+		}
+		if ms := s.Binc.Milliseconds(); ms != 0 {
+			_, _ = fmt.Fprintf(&b, " binc %v", ms)
+		}
+		if s.MovesToGo != 0 {
+			_, _ = fmt.Fprintf(&b, " movestogo %v", s.MovesToGo)
+		}
 	}
 	if v, ok := c.opts.Depth.TryGet(); ok {
 		_, _ = fmt.Fprintf(&b, " depth %v", v)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alex65536/go-chess/chess"
+	"github.com/alex65536/go-chess/clock"
 	"github.com/alex65536/go-chess/util/maybe"
 )
 
@@ -18,11 +19,7 @@ type GoOptions struct {
 	SearchMoves []chess.Move
 	Ponder      bool
 	Infinite    bool
-	Wtime       maybe.Maybe[time.Duration]
-	Btime       maybe.Maybe[time.Duration]
-	Winc        maybe.Maybe[time.Duration]
-	Binc        maybe.Maybe[time.Duration]
-	MovesToGo   int
+	TimeSpec    maybe.Maybe[clock.UCITimeSpec]
 	Depth       maybe.Maybe[int64]
 	Nodes       maybe.Maybe[int64]
 	Mate        maybe.Maybe[int64]
@@ -56,21 +53,14 @@ func (g GoOptions) Validate(b *chess.Board) error {
 	}
 
 	if g.Infinite &&
-		(g.Wtime.IsSome() || g.Btime.IsSome() || g.Winc.IsSome() || g.Binc.IsSome() || g.MovesToGo != 0 ||
-			g.Depth.IsSome() || g.Nodes.IsSome() || g.Mate.IsSome() || g.Movetime.IsSome()) {
+		(g.TimeSpec.IsSome() || g.Depth.IsSome() || g.Nodes.IsSome() || g.Mate.IsSome() || g.Movetime.IsSome()) {
 		return fmt.Errorf("conflicting options with infinite")
 	}
 
-	if g.Wtime.IsSome() && g.Wtime.Get() <= 0 {
-		return fmt.Errorf("non-positive wtime")
-	}
-
-	if g.Btime.IsSome() && g.Btime.Get() <= 0 {
-		return fmt.Errorf("non-positive btime")
-	}
-
-	if g.MovesToGo < 0 {
-		return fmt.Errorf("negative movestogo")
+	if s, ok := g.TimeSpec.TryGet(); ok {
+		if err := s.Validate(); err != nil {
+			return fmt.Errorf("invalid time spec: %w", err)
+		}
 	}
 
 	if g.Depth.IsSome() && g.Depth.Get() <= 0 {
