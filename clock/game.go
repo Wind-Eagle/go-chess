@@ -88,9 +88,11 @@ func (g *Game) Finish(o chess.Outcome) error {
 		return fmt.Errorf("outcome must finish the game")
 	}
 	g.game.SetOutcome(o)
-	g.timer.Stop(o)
-	if to := g.timer.Outcome(); o != to {
-		g.game.SetOutcome(to)
+	if g.timer != nil {
+		g.timer.Stop(o)
+		if to := g.timer.Outcome(); o != to {
+			g.game.SetOutcome(to)
+		}
 	}
 	return nil
 }

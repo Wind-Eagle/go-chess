@@ -239,7 +239,7 @@ func TestGameStop(t *testing.T) {
 	assert.Equal(t, chess.MustWinOutcome(chess.VerdictResign, chess.ColorWhite), g.Outcome())
 }
 
-func TestGameStopRace(t *testing.T) {
+func TestGameRacyStop(t *testing.T) {
 	now, err := time.Parse(time.RFC3339, "2012-09-28T12:34:56Z")
 	require.NoError(t, err)
 
