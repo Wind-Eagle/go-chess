@@ -71,7 +71,7 @@ type GameStyle struct {
 }
 
 type GameAnnotations struct {
-	Comments []string
+	Comments [][]string
 }
 
 type Game struct {
@@ -294,16 +294,25 @@ func (g *Game) Styled(style GameStyle) (string, error) {
 	return g.StyledExt(style, GameAnnotations{})
 }
 
+func doAddComments(b *strings.Builder, cs []string) {
+	for i, c := range cs {
+		if i != 0 {
+			_ = b.WriteByte(' ')
+		}
+		_, _ = fmt.Fprintf(b, "{%v}", strings.ReplaceAll(c, "}", ""))
+	}
+}
+
 func (g *Game) StyledExt(style GameStyle, ga GameAnnotations) (string, error) {
 	var b strings.Builder
 
 	first := true
-	if len(ga.Comments) > 0 && ga.Comments[0] != "" {
+	if len(ga.Comments) > 0 && len(ga.Comments[0]) != 0 {
 		if !first {
 			_ = b.WriteByte(' ')
 		}
 		first = false
-		_, _ = fmt.Fprintf(&b, "{%v}", strings.ReplaceAll(ga.Comments[0], "}", ""))
+		doAddComments(&b, ga.Comments[0])
 	}
 
 	if len(g.stack) != 0 {
@@ -334,8 +343,9 @@ func (g *Game) StyledExt(style GameStyle, ga GameAnnotations) (string, error) {
 				return "", fmt.Errorf("style move #%d: %w", i+1, err)
 			}
 			_, _ = b.WriteString(s)
-			if len(ga.Comments) > i+1 && ga.Comments[i+1] != "" {
-				_, _ = fmt.Fprintf(&b, " {%v}", strings.ReplaceAll(ga.Comments[i+1], "}", ""))
+			if len(ga.Comments) > i+1 && len(ga.Comments[i+1]) != 0 {
+				_ = b.WriteByte(' ')
+				doAddComments(&b, ga.Comments[i+1])
 				mustNumber = true
 			}
 			if w.Board().Side() == ColorBlack {
