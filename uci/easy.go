@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"slices"
+	"syscall"
 )
 
 type EasyEngineOptions struct {
@@ -12,6 +13,7 @@ type EasyEngineOptions struct {
 	Args            []string
 	Env             []string
 	Dir             string
+	SysProcAttr     *syscall.SysProcAttr
 	Logger          Logger
 	EnableTracing   bool
 	TracingOptions  TracingProcessOptions
@@ -23,6 +25,7 @@ func NewEasyEngine(ctx context.Context, o EasyEngineOptions) (*Engine, error) {
 	cmd := exec.Command(o.Name, o.Args...)
 	cmd.Env = slices.Clone(o.Env)
 	cmd.Dir = o.Dir
+	cmd.SysProcAttr = o.SysProcAttr
 	p, err := NewCmdProcess(cmd)
 	if err != nil {
 		return nil, fmt.Errorf("create process: %w", err)
