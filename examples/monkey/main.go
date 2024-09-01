@@ -1,4 +1,4 @@
-// Create a chess game consisting of random moves and print it to stdout.
+// An example which creates a chess game consisting of random moves and print it to stdout.
 package main
 
 import (
