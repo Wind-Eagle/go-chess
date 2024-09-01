@@ -27,7 +27,7 @@ about performance.
 
 Also, the project tends to be dependency-free, though, it uses [testify][testify] for testing.
 
-The implementation borrows heavily from my chess implementations on other programming languages,
+The implementation borrows heavily from my chess implementations in other programming languages,
 like [SoFCheck in C++][sofcheck] and [owlchess in Rust][owlchess].
 
 ## Usage
@@ -37,7 +37,7 @@ See the [examples][examples] and the [documentation][docs].
 ## Contributing
 
 Pull requests are welcome ;) There is no formal process on how to submit pull requests, it may be
-establish once there are many enough of them.
+established once there are many enough of them.
 
 Also, reporting issues is appreciated.
 
@@ -99,7 +99,7 @@ BenchmarkKingAttack/max               136371939 8.848 ns/op
 ```
 
 The performance is ~3 times slower than [owlchess][owlchess] in Rust, though note that Go compiler
-applies less optimization and generates the slower code overall.
+applies less optimizations and generates slower code overall.
 
 If you plan to implement a chess engine in Go, I advice you against of doing so. Better use more
 performant languages such as Rust, C++ or Zig.
