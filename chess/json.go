@@ -10,6 +10,9 @@ func (b RawBoard) MarshalJSON() ([]byte, error) {
 }
 
 func (b *RawBoard) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
 	var fen string
 	if err := json.Unmarshal(data, &fen); err != nil {
 		return err
@@ -27,6 +30,9 @@ func (b *Board) MarshalJSON() ([]byte, error) {
 }
 
 func (b *Board) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
 	var fen string
 	if err := json.Unmarshal(data, &fen); err != nil {
 		return err
@@ -44,6 +50,9 @@ func (m UCIMove) MarshalJSON() ([]byte, error) {
 }
 
 func (m *UCIMove) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
 	var uci string
 	if err := json.Unmarshal(data, &uci); err != nil {
 		return err
@@ -61,6 +70,9 @@ func (c Color) MarshalJSON() ([]byte, error) {
 }
 
 func (c *Color) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
 	var cs string
 	if err := json.Unmarshal(data, &cs); err != nil {
 		return err
@@ -78,6 +90,9 @@ func (c Coord) MarshalJSON() ([]byte, error) {
 }
 
 func (c *Coord) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
 	var cs string
 	if err := json.Unmarshal(data, &cs); err != nil {
 		return err
@@ -95,6 +110,9 @@ func (c MaybeCoord) MarshalJSON() ([]byte, error) {
 }
 
 func (c *MaybeCoord) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
 	var cs string
 	if err := json.Unmarshal(data, &cs); err != nil {
 		return err
@@ -112,6 +130,9 @@ func (c Cell) MarshalJSON() ([]byte, error) {
 }
 
 func (c *Cell) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
 	var cs string
 	if err := json.Unmarshal(data, &cs); err != nil {
 		return err
@@ -129,6 +150,9 @@ func (r CastlingRights) MarshalJSON() ([]byte, error) {
 }
 
 func (r *CastlingRights) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
 	var rs string
 	if err := json.Unmarshal(data, &rs); err != nil {
 		return err
@@ -146,6 +170,9 @@ func (s Status) MarshalJSON() ([]byte, error) {
 }
 
 func (s *Status) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
 	var ss string
 	if err := json.Unmarshal(data, &ss); err != nil {
 		return err
