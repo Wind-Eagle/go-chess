@@ -670,6 +670,21 @@ const (
 	StatusBlackWins
 )
 
+func StatusFromString(s string) (Status, error) {
+	switch s {
+	case "*":
+		return StatusRunning, nil
+	case "1/2-1/2":
+		return StatusDraw, nil
+	case "1-0":
+		return StatusWhiteWins, nil
+	case "0-1":
+		return StatusBlackWins, nil
+	default:
+		return Status(0), fmt.Errorf("bad status string")
+	}
+}
+
 func StatusWin(c Color) Status {
 	switch c {
 	case ColorWhite:
