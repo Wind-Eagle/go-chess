@@ -35,8 +35,10 @@ func (s *UCITimeSpec) Validate() error {
 }
 
 type Clock struct {
-	White time.Duration
-	Black time.Duration
+	White        time.Duration
+	Black        time.Duration
+	WhiteTicking bool
+	BlackTicking bool
 }
 
 func (c *Clock) Side(col chess.Color) *time.Duration {
@@ -44,5 +46,13 @@ func (c *Clock) Side(col chess.Color) *time.Duration {
 		return &c.White
 	} else {
 		return &c.Black
+	}
+}
+
+func (c *Clock) SideTicking(col chess.Color) *bool {
+	if col == chess.ColorWhite {
+		return &c.WhiteTicking
+	} else {
+		return &c.BlackTicking
 	}
 }

@@ -23,11 +23,11 @@ func TestNewGame(t *testing.T) {
 	})
 	clk, ok := g.Clock()
 	assert.True(t, ok)
-	assert.Equal(t, Clock{White: 60 * time.Second, Black: 60 * time.Second}, clk)
+	assert.Equal(t, Clock{White: 60 * time.Second, Black: 60 * time.Second, WhiteTicking: true}, clk)
 	now = now.Add(time.Second)
 	clk, ok = g.Clock()
 	assert.True(t, ok)
-	assert.Equal(t, Clock{White: 59 * time.Second, Black: 60 * time.Second}, clk)
+	assert.Equal(t, Clock{White: 59 * time.Second, Black: 60 * time.Second, WhiteTicking: true}, clk)
 
 	cg := chess.NewGame()
 	cg.SetOutcome(chess.MustDrawOutcome(chess.VerdictDrawAgreement))
@@ -62,7 +62,7 @@ func TestNewGame(t *testing.T) {
 	})
 	clk, ok = g.Clock()
 	assert.True(t, ok)
-	assert.Equal(t, Clock{White: 62 * time.Second, Black: 62 * time.Second}, clk)
+	assert.Equal(t, Clock{White: 62 * time.Second, Black: 62 * time.Second, WhiteTicking: true}, clk)
 	assert.Equal(t, chess.RunningOutcome(), g.Outcome())
 	assert.False(t, g.IsFinished())
 }
@@ -79,7 +79,7 @@ func TestGameSimple(t *testing.T) {
 	})
 	clk, ok := g.Clock()
 	assert.True(t, ok)
-	assert.Equal(t, Clock{White: 60 * time.Second, Black: 60 * time.Second}, clk)
+	assert.Equal(t, Clock{White: 60 * time.Second, Black: 60 * time.Second, WhiteTicking: true}, clk)
 	assert.True(t, g.HasTimer())
 
 	mv, err := chess.MoveFromUCI("g2g4", g.CurBoard())
@@ -88,7 +88,7 @@ func TestGameSimple(t *testing.T) {
 	require.NoError(t, g.Push(mv))
 	clk, ok = g.Clock()
 	assert.True(t, ok)
-	assert.Equal(t, Clock{White: 56 * time.Second, Black: 60 * time.Second}, clk)
+	assert.Equal(t, Clock{White: 56 * time.Second, Black: 60 * time.Second, BlackTicking: true}, clk)
 
 	assert.Equal(t, chess.ColorBlack, g.CurSide())
 	d, ok := g.Deadline()
@@ -108,7 +108,7 @@ func TestGameSimple(t *testing.T) {
 	require.NoError(t, g.Push(mv))
 	clk, ok = g.Clock()
 	assert.True(t, ok)
-	assert.Equal(t, Clock{White: 56 * time.Second, Black: 55 * time.Second}, clk)
+	assert.Equal(t, Clock{White: 56 * time.Second, Black: 55 * time.Second, WhiteTicking: true}, clk)
 
 	mv, err = chess.MoveFromUCI("f2f3", g.CurBoard())
 	require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestGameSimple(t *testing.T) {
 	require.NoError(t, g.Push(mv))
 	clk, ok = g.Clock()
 	assert.True(t, ok)
-	assert.Equal(t, Clock{White: 55 * time.Second, Black: 55 * time.Second}, clk)
+	assert.Equal(t, Clock{White: 55 * time.Second, Black: 55 * time.Second, BlackTicking: true}, clk)
 
 	mv, err = chess.MoveFromUCI("d8h4", g.CurBoard())
 	require.NoError(t, err)
@@ -150,7 +150,7 @@ func TestGameTimeForfeit(t *testing.T) {
 	})
 	clk, ok := g.Clock()
 	assert.True(t, ok)
-	assert.Equal(t, Clock{White: 60 * time.Second, Black: 60 * time.Second}, clk)
+	assert.Equal(t, Clock{White: 60 * time.Second, Black: 60 * time.Second, WhiteTicking: true}, clk)
 
 	mv, err := chess.MoveFromUCI("e2e4", g.CurBoard())
 	require.NoError(t, err)
@@ -286,7 +286,7 @@ func TestGameUpdate(t *testing.T) {
 
 	clk, ok := g.Clock()
 	assert.True(t, ok)
-	assert.Equal(t, Clock{White: 50 * time.Second, Black: 60 * time.Second}, clk)
+	assert.Equal(t, Clock{White: 50 * time.Second, Black: 60 * time.Second, WhiteTicking: true}, clk)
 
 	now = now.Add(50 * time.Second)
 	g.UpdateTimer()
