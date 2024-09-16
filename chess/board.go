@@ -677,6 +677,9 @@ func (b *Board) Eq(o *Board) bool {
 }
 
 func (b *Board) Clone() *Board {
+	if b == nil {
+		return nil
+	}
 	bCopy := *b
 	return &bCopy
 }

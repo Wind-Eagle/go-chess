@@ -45,6 +45,9 @@ func (r *RepeatTable) Count(b *Board) int {
 }
 
 func (r *RepeatTable) Clone() *RepeatTable {
+	if r == nil {
+		return nil
+	}
 	return &RepeatTable{
 		mp: maps.Clone(r.mp),
 	}
@@ -83,6 +86,9 @@ type Game struct {
 }
 
 func (g *Game) Clone() *Game {
+	if g == nil {
+		return nil
+	}
 	return &Game{
 		start:   g.start,
 		board:   g.board.Clone(),
