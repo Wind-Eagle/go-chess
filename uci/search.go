@@ -13,7 +13,7 @@ import (
 	"github.com/alex65536/go-chess/util/maybe"
 )
 
-type InfoConsumer func(Info)
+type searchInfoConsumer func(*searchState, Info)
 
 type GoOptions struct {
 	SearchMoves []chess.Move
@@ -119,7 +119,7 @@ func (s SearchStatus) Clone() SearchStatus {
 }
 
 type searchState struct {
-	c InfoConsumer
+	c searchInfoConsumer
 	l Logger
 
 	mu       sync.RWMutex
@@ -134,11 +134,7 @@ type searchState struct {
 	b        *chess.Board
 }
 
-func newSearchState(c InfoConsumer, l Logger, b *chess.Board, ponder bool) *searchState {
-	if c == nil {
-		c = func(Info) {}
-	}
-
+func newSearchState(c searchInfoConsumer, l Logger, b *chess.Board, ponder bool) *searchState {
 	return &searchState{
 		c: c,
 		l: l,
@@ -156,7 +152,7 @@ func newSearchState(c InfoConsumer, l Logger, b *chess.Board, ponder bool) *sear
 }
 
 func (s *searchState) OnInfo(info Info, strOnly bool) error {
-	defer func() { s.c(info) }()
+	defer func() { s.c(s, info) }()
 
 	if strOnly {
 		// Info contains only string, nothing to handle.

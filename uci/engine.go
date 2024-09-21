@@ -8,6 +8,8 @@ import (
 	"github.com/alex65536/go-chess/chess"
 )
 
+type InfoConsumer func(*Search, Info)
+
 type EngineOptions struct {
 	// Reject all the lines containing non-ASCII characters, both from and to engine.
 	SanitizeUTF8 bool
@@ -207,7 +209,15 @@ func (e *Engine) SetPosition(ctx context.Context, g *chess.Game) error {
 }
 
 func (e *Engine) Go(ctx context.Context, opts GoOptions, c InfoConsumer) (*Search, error) {
-	res, err := e.c.Send(ctx, cmdGo{opts: opts.Clone(), c: c})
+	var consumer searchInfoConsumer
+	if c == nil {
+		consumer = func(*searchState, Info) {}
+	} else {
+		consumer = func(s *searchState, info Info) {
+			c(&Search{s: s, e: e}, info)
+		}
+	}
+	res, err := e.c.Send(ctx, cmdGo{opts: opts.Clone(), c: consumer})
 	if err != nil {
 		return nil, fmt.Errorf("send \"go\": %w", err)
 	}

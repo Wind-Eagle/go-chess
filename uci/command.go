@@ -95,7 +95,7 @@ func (c cmdPosition) Serialize() string {
 
 type cmdGo struct {
 	opts GoOptions
-	c    InfoConsumer
+	c    searchInfoConsumer
 }
 type cmdGoRes *searchState
 
