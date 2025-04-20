@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/alex65536/go-chess/chess"
+	"github.com/alex65536/go-chess/util/maybe"
 )
 
 type subController struct {
@@ -68,6 +69,7 @@ type TimerOptions struct {
 	NumFlips int
 	Outcome  chess.Outcome
 	Now      func() time.Time
+	Clock    maybe.Maybe[SimpleClock]
 }
 
 func NewTimer(side chess.Color, control Control, o TimerOptions) *Timer {
@@ -88,6 +90,10 @@ func NewTimer(side chess.Color, control Control, o TimerOptions) *Timer {
 			break
 		}
 		t.doFlip()
+		t.doCheckForfeit()
+	}
+	if c, ok := o.Clock.TryGet(); ok {
+		t.clock = c
 		t.doCheckForfeit()
 	}
 	if o.Outcome.IsFinished() && !t.outcome.IsFinished() {

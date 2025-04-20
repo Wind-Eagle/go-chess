@@ -11,6 +11,7 @@ import (
 type GameOptions struct {
 	OutcomeFilter maybe.Maybe[chess.VerdictFilter]
 	Now           func() time.Time
+	Clock         maybe.Maybe[SimpleClock]
 }
 
 type Game struct {
@@ -29,6 +30,7 @@ func NewGame(game *chess.Game, control maybe.Maybe[Control], o GameOptions) *Gam
 			NumFlips: game.Len(),
 			Outcome:  game.Outcome(),
 			Now:      o.Now,
+			Clock:    o.Clock,
 		}
 		if to.Outcome.IsFinished() && to.NumFlips != 0 {
 			to.NumFlips--

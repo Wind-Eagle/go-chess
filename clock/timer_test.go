@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alex65536/go-chess/chess"
+	"github.com/alex65536/go-chess/util/maybe"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -469,4 +470,83 @@ func TestHugeInc(t *testing.T) {
 	timer.Flip()
 	assert.Equal(t, Clock{White: -time.Second, Black: time.Second}, timer.Clock())
 	assert.True(t, timer.Outcome().IsFinished())
+}
+
+func TestCustomTime(t *testing.T) {
+	now, err := time.Parse(time.RFC3339, "2012-09-28T12:34:56Z")
+	require.NoError(t, err)
+
+	c, err := ControlFromString("5/300+3:500+5")
+	require.NoError(t, err)
+	require.NoError(t, c.Validate())
+
+	timer := NewTimer(chess.ColorWhite, c, TimerOptions{
+		Now: func() time.Time { return now },
+	})
+	assert.Equal(t, Clock{White: 300 * time.Second, Black: 300 * time.Second, WhiteTicking: true}, timer.Clock())
+	now = now.Add(3 * time.Second)
+	timer.Update()
+	assert.Equal(t, Clock{White: 297 * time.Second, Black: 300 * time.Second, WhiteTicking: true}, timer.Clock())
+
+	timer = NewTimer(chess.ColorWhite, c, TimerOptions{
+		Now: func() time.Time { return now },
+		Clock: maybe.Some(SimpleClock{
+			White: 456 * time.Second,
+			Black: 123 * time.Second,
+		}),
+	})
+	assert.Equal(t, Clock{White: 456 * time.Second, Black: 123 * time.Second, WhiteTicking: true}, timer.Clock())
+	now = now.Add(3 * time.Second)
+	timer.Update()
+	assert.Equal(t, Clock{White: 453 * time.Second, Black: 123 * time.Second, WhiteTicking: true}, timer.Clock())
+
+	timer = NewTimer(chess.ColorWhite, c, TimerOptions{
+		Now:      func() time.Time { return now },
+		NumFlips: 9,
+	})
+	assert.Equal(t, Clock{White: 815 * time.Second, Black: 312 * time.Second, BlackTicking: true}, timer.Clock())
+	now = now.Add(7 * time.Second)
+	timer.Flip()
+	assert.Equal(t, Clock{White: 815 * time.Second, Black: 808 * time.Second, WhiteTicking: true}, timer.Clock())
+
+	timer = NewTimer(chess.ColorWhite, c, TimerOptions{
+		Now:      func() time.Time { return now },
+		NumFlips: 9,
+		Clock: maybe.Some(SimpleClock{
+			White: 456 * time.Second,
+			Black: 123 * time.Second,
+		}),
+	})
+	assert.Equal(t, Clock{White: 456 * time.Second, Black: 123 * time.Second, BlackTicking: true}, timer.Clock())
+	now = now.Add(7 * time.Second)
+	timer.Flip()
+	assert.Equal(t, Clock{White: 456 * time.Second, Black: 619 * time.Second, WhiteTicking: true}, timer.Clock())
+
+	timer = NewTimer(chess.ColorWhite, c, TimerOptions{
+		Now:      func() time.Time { return now },
+		NumFlips: 9,
+		Clock: maybe.Some(SimpleClock{
+			White: 456 * time.Second,
+			Black: -1 * time.Second,
+		}),
+	})
+	assert.Equal(t, Clock{White: 456 * time.Second, Black: -1 * time.Second}, timer.Clock())
+	now = now.Add(3 * time.Second)
+	timer.Update()
+	assert.Equal(t, Clock{White: 456 * time.Second, Black: -1 * time.Second}, timer.Clock())
+	timer.Flip()
+	assert.Equal(t, Clock{White: 456 * time.Second, Black: -1 * time.Second}, timer.Clock())
+
+	timer = NewTimer(chess.ColorWhite, c, TimerOptions{
+		Now:      func() time.Time { return now },
+		NumFlips: 9,
+		Clock: maybe.Some(SimpleClock{
+			White: -1 * time.Second,
+			Black: 123 * time.Second,
+		}),
+	})
+	assert.Equal(t, Clock{White: -1 * time.Second, Black: 123 * time.Second, BlackTicking: true}, timer.Clock())
+	now = now.Add(3 * time.Second)
+	timer.Update()
+	assert.Equal(t, Clock{White: -1 * time.Second, Black: 120 * time.Second, BlackTicking: true}, timer.Clock())
 }
