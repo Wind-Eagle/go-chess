@@ -537,6 +537,12 @@ func TestCustomTime(t *testing.T) {
 	timer.Flip()
 	assert.Equal(t, Clock{White: 456 * time.Second, Black: -1 * time.Second}, timer.Clock())
 
+	// Technically, the Clock passed here is invalid, because White forfeited on time on its
+	// previous move, and yet the game still continues.
+	//
+	// In this case, the Timer is able to do what it wants. However, currently it doesn't declare
+	// win by Black immediately, as the player's clock is checked only on its move. Here, we just
+	// "document" this behavior in tests.
 	timer = NewTimer(chess.ColorWhite, c, TimerOptions{
 		Now:      func() time.Time { return now },
 		NumFlips: 9,
@@ -549,4 +555,8 @@ func TestCustomTime(t *testing.T) {
 	now = now.Add(3 * time.Second)
 	timer.Update()
 	assert.Equal(t, Clock{White: -1 * time.Second, Black: 120 * time.Second, BlackTicking: true}, timer.Clock())
+	timer.Flip()
+	assert.Equal(t, Clock{White: -1 * time.Second, Black: 623 * time.Second, WhiteTicking: true}, timer.Clock())
+	timer.Flip()
+	assert.Equal(t, Clock{White: -1 * time.Second, Black: 623 * time.Second}, timer.Clock())
 }
