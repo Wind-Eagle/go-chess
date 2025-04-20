@@ -6,8 +6,6 @@ import (
 	"github.com/alex65536/go-chess/chess"
 )
 
-type times [chess.ColorMax]time.Duration
-
 type subController struct {
 	control ControlSide
 	left    int
@@ -37,20 +35,20 @@ type controller struct {
 	sub [chess.ColorMax]subController
 }
 
-func (c *controller) init(control Control, times *times) {
+func (c *controller) init(control Control, clock *SimpleClock) {
 	for color := range chess.ColorMax {
-		c.sub[color].init(*control.Side(color), &times[color])
+		c.sub[color].init(*control.Side(color), clock.Side(color))
 	}
 }
 
-func (c *controller) flip(who chess.Color, times *times) {
-	c.sub[who].flip(&times[who])
+func (c *controller) flip(who chess.Color, clock *SimpleClock) {
+	c.sub[who].flip(clock.Side(who))
 }
 
-func (c *controller) uciTimeSpec(who chess.Color, times times) UCITimeSpec {
+func (c *controller) uciTimeSpec(who chess.Color, clock SimpleClock) UCITimeSpec {
 	return UCITimeSpec{
-		Wtime:     times[chess.ColorWhite],
-		Btime:     times[chess.ColorBlack],
+		Wtime:     clock.White,
+		Btime:     clock.Black,
 		Winc:      c.sub[chess.ColorWhite].control[0].Inc,
 		Binc:      c.sub[chess.ColorBlack].control[0].Inc,
 		MovesToGo: c.sub[who].left,
@@ -63,7 +61,7 @@ type Timer struct {
 	cur     time.Time
 	nowFn   func() time.Time
 	ctrl    controller
-	times   times
+	clock   SimpleClock
 }
 
 type TimerOptions struct {
@@ -83,7 +81,7 @@ func NewTimer(side chess.Color, control Control, o TimerOptions) *Timer {
 		cur:     nowFn(),
 		nowFn:   nowFn,
 	}
-	t.ctrl.init(control, &t.times)
+	t.ctrl.init(control, &t.clock)
 	t.doCheckForfeit()
 	for range o.NumFlips {
 		if t.outcome.IsFinished() {
@@ -103,8 +101,8 @@ func (t *Timer) Outcome() chess.Outcome { return t.outcome }
 
 func (t *Timer) Clock() Clock {
 	c := Clock{
-		White:        t.times[chess.ColorWhite],
-		Black:        t.times[chess.ColorBlack],
+		White:        t.clock.White,
+		Black:        t.clock.Black,
 		WhiteTicking: false,
 		BlackTicking: false,
 	}
@@ -123,11 +121,11 @@ func (t *Timer) Deadline() (time.Time, bool) {
 	if t.outcome.IsFinished() {
 		return time.Time{}, false
 	}
-	return t.cur.Add(t.times[t.side]), true
+	return t.cur.Add(*t.clock.Side(t.side)), true
 }
 
 func (t *Timer) doCheckForfeit() {
-	if !t.outcome.IsFinished() && t.times[t.side] <= 0 {
+	if !t.outcome.IsFinished() && *t.clock.Side(t.side) <= 0 {
 		t.outcome = chess.MustWinOutcome(chess.VerdictTimeForfeit, t.side.Inv())
 	}
 }
@@ -138,14 +136,14 @@ func (t *Timer) Update() {
 	}
 	now := t.nowFn()
 	if now.After(t.cur) {
-		t.times[t.side] -= now.Sub(t.cur)
+		*t.clock.Side(t.side) -= now.Sub(t.cur)
 		t.cur = now
 	}
 	t.doCheckForfeit()
 }
 
 func (t *Timer) doFlip() {
-	t.ctrl.flip(t.side, &t.times)
+	t.ctrl.flip(t.side, &t.clock)
 	t.side = t.side.Inv()
 }
 
@@ -172,5 +170,5 @@ func (t *Timer) Stop(outcome chess.Outcome) {
 }
 
 func (t *Timer) UCITimeSpec() UCITimeSpec {
-	return t.ctrl.uciTimeSpec(t.side, t.times)
+	return t.ctrl.uciTimeSpec(t.side, t.clock)
 }

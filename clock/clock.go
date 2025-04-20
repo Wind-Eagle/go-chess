@@ -34,11 +34,31 @@ func (s *UCITimeSpec) Validate() error {
 	return nil
 }
 
+type SimpleClock struct {
+	White time.Duration
+	Black time.Duration
+}
+
+func (c *SimpleClock) Side(col chess.Color) *time.Duration {
+	if col == chess.ColorWhite {
+		return &c.White
+	} else {
+		return &c.Black
+	}
+}
+
 type Clock struct {
 	White        time.Duration
 	Black        time.Duration
 	WhiteTicking bool
 	BlackTicking bool
+}
+
+func (c *Clock) Simple() SimpleClock {
+	return SimpleClock{
+		White: c.White,
+		Black: c.Black,
+	}
 }
 
 func (c *Clock) Side(col chess.Color) *time.Duration {
