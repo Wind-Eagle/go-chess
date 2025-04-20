@@ -541,8 +541,9 @@ func TestCustomTime(t *testing.T) {
 	// previous move, and yet the game still continues.
 	//
 	// In this case, the Timer is able to do what it wants. However, currently it doesn't declare
-	// win by Black immediately, as the player's clock is checked only on its move. Here, we just
-	// "document" this behavior in tests.
+	// win by Black immediately, as the player's clock isn't checked on the opponent's move.
+	//
+	// Here we just "document" such behavior in tests.
 	timer = NewTimer(chess.ColorWhite, c, TimerOptions{
 		Now:      func() time.Time { return now },
 		NumFlips: 9,
