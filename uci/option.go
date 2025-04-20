@@ -40,14 +40,9 @@ func (v OptValueInt) serialize() string { return strconv.FormatInt(int64(v), 10)
 
 type OptValueString string
 
-func (v OptValueString) TypeName() string { return "string" }
-func (v OptValueString) optValueMarker()  {}
-func (v OptValueString) serialize() string {
-	if len(v) == 0 {
-		return "<empty>"
-	}
-	return string(v)
-}
+func (v OptValueString) TypeName() string  { return "string" }
+func (v OptValueString) optValueMarker()   {}
+func (v OptValueString) serialize() string { return string(v) }
 
 type OptValueButton struct{}
 

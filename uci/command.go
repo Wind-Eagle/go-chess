@@ -54,7 +54,11 @@ func (c cmdSetOption) Serialize() string {
 	if _, ok := c.value.(OptValueButton); ok {
 		return fmt.Sprintf("setoption name %v", c.name)
 	}
-	return fmt.Sprintf("setoption name %v value %v", c.name, c.value.serialize())
+	val := c.value.serialize()
+	if len(val) == 0 {
+		return fmt.Sprintf("setoption name %v value", c.name)
+	}
+	return fmt.Sprintf("setoption name %v value %v", c.name, val)
 }
 
 // Register is not supported.
